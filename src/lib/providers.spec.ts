@@ -73,6 +73,11 @@ describe("buildSnapshot", () => {
     expect(result.providers[0].name).not.toBe("");
     expect(result.providers[0].name).toContain("…");
   });
+
+  it("preserves hostUri on the marker so detection can resolve it", () => {
+    const result = buildSnapshot([makeProvider({ hostUri: "https://provider.eu.example:8443" })], new Date());
+    expect(result.providers[0].hostUri).toBe("https://provider.eu.example:8443");
+  });
 });
 
 describe("getNetworkSnapshot", () => {
