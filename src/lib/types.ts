@@ -20,6 +20,7 @@ export interface ApiProvider {
 export interface ProviderMarker {
   owner: string;
   name: string;
+  hostUri: string;
   lat: number;
   lng: number;
   region: string;

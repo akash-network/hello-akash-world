@@ -71,6 +71,7 @@ function toMarker(p: ApiProvider): ProviderMarker {
   return {
     owner: p.owner,
     name: p.name?.trim() || shortenAddress(p.owner),
+    hostUri: p.hostUri,
     lat,
     lng,
     region: p.ipRegion ?? "",

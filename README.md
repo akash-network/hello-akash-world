@@ -67,8 +67,8 @@ akash tx deployment create deploy.yml --from <key>
 
 The page tries two strategies, in order:
 
-1. `AKASH_PROVIDER_ADDRESS` env — set this in your SDL to pin the answer explicitly.
-2. Fall back to geolocating the container's public IP (via [ipapi.co](https://ipapi.co)) and finding the geographically closest provider by Haversine distance.
+1. Look up the container's public IP (via [ipapi.co](https://ipapi.co)), then resolve each provider's `hostUri` via DNS and look for an exact IP match. When deployed on Akash, the workload's egress IP usually matches the provider's host IP.
+2. If no host IP matches (provider uses a separate egress gateway, or the page is running off-Akash), fall back to the geographically closest provider by Haversine distance.
 
 If both fail, the banner is hidden and the globe renders normally.
 

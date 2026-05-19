@@ -41,60 +41,96 @@ describe("detectCurrentProvider", () => {
     expect(result).toBeNull();
   });
 
-  it("prefers AKASH_PROVIDER_ADDRESS over IP geolocation", async () => {
-    const providers: ProviderMarker[] = [marker("eu", 50, 8), marker("pinned", 0, 0)];
-    const fetchImpl = vi.fn();
-    const result = await detectCurrentProvider(providers, { env: { AKASH_PROVIDER_ADDRESS: "pinned" }, fetchImpl });
-    expect(result?.source).toBe("env");
-    expect(result?.marker.owner).toBe("pinned");
-    expect(fetchImpl).not.toHaveBeenCalled();
+  it("returns ip-host match when our public IP resolves to a provider's hostUri", async () => {
+    const providers: ProviderMarker[] = [
+      marker("eu", 50, 8, "https://provider.eu.example:8443"),
+      marker("us", 39, -77, "https://provider.us.example:8443")
+    ];
+    const fetchImpl = mockGeoResponse({ ip: "203.0.113.10", latitude: 50.1, longitude: 8.6 });
+    const dnsLookup = vi.fn(async (hostname: string) => {
+      if (hostname === "provider.us.example") return { address: "203.0.113.10", family: 4 };
+      return { address: "198.51.100.1", family: 4 };
+    });
+
+    const result = await detectCurrentProvider(providers, { fetchImpl, dnsLookup });
+
+    expect(result?.source).toBe("ip-host");
+    expect(result?.marker.owner).toBe("us");
+    expect(result?.publicIp).toBe("203.0.113.10");
   });
 
-  it("ignores an AKASH_PROVIDER_ADDRESS that doesn't match any provider and falls back to geolocation", async () => {
-    const providers: ProviderMarker[] = [marker("eu", 50, 8)];
-    const fetchImpl = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ ip: "1.2.3.4", latitude: 50.1, longitude: 8.6 }), {
-        status: 200,
-        headers: { "content-type": "application/json" }
-      })
-    );
-    const result = await detectCurrentProvider(providers, { env: { AKASH_PROVIDER_ADDRESS: "unknown" }, fetchImpl });
+  it("falls back to geographically closest provider when no host IP matches", async () => {
+    const providers: ProviderMarker[] = [
+      marker("eu", 50, 8, "https://provider.eu.example:8443"),
+      marker("us", 39, -77, "https://provider.us.example:8443")
+    ];
+    const fetchImpl = mockGeoResponse({ ip: "1.2.3.4", latitude: 50.1, longitude: 8.6 });
+    const dnsLookup = vi.fn(async () => ({ address: "198.51.100.1", family: 4 }));
+
+    const result = await detectCurrentProvider(providers, { fetchImpl, dnsLookup });
+
     expect(result?.source).toBe("ip-geo");
     expect(result?.marker.owner).toBe("eu");
+    expect(result?.publicIp).toBe("1.2.3.4");
+  });
+
+  it("tolerates DNS failures on individual providers", async () => {
+    const providers: ProviderMarker[] = [
+      marker("broken", 50, 8, "https://broken.example:8443"),
+      marker("us", 39, -77, "https://provider.us.example:8443")
+    ];
+    const fetchImpl = mockGeoResponse({ ip: "203.0.113.10", latitude: 39, longitude: -77 });
+    const dnsLookup = vi.fn(async (hostname: string) => {
+      if (hostname === "broken.example") throw new Error("ENOTFOUND");
+      return { address: "203.0.113.10", family: 4 };
+    });
+
+    const result = await detectCurrentProvider(providers, { fetchImpl, dnsLookup });
+
+    expect(result?.source).toBe("ip-host");
+    expect(result?.marker.owner).toBe("us");
   });
 
   it("returns null when geolocation lookup fails", async () => {
-    const providers: ProviderMarker[] = [marker("eu", 50, 8)];
+    const providers: ProviderMarker[] = [marker("eu", 50, 8, "https://provider.eu.example:8443")];
     const fetchImpl = vi.fn().mockRejectedValue(new Error("network"));
-    const result = await detectCurrentProvider(providers, { env: {}, fetchImpl });
+    const dnsLookup = vi.fn();
+
+    const result = await detectCurrentProvider(providers, { fetchImpl, dnsLookup });
+
     expect(result).toBeNull();
+    expect(dnsLookup).not.toHaveBeenCalled();
   });
 
   it("returns null when geolocation response has no coordinates", async () => {
-    const providers: ProviderMarker[] = [marker("eu", 50, 8)];
-    const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "rate limited" }), { status: 200, headers: { "content-type": "application/json" } }));
-    const result = await detectCurrentProvider(providers, { env: {}, fetchImpl });
-    expect(result).toBeNull();
-  });
-
-  it("picks the closest provider by Haversine when geolocation succeeds", async () => {
-    const providers: ProviderMarker[] = [marker("eu", 50, 8), marker("us", 39, -77), marker("sg", 1.35, 103)];
+    const providers: ProviderMarker[] = [marker("eu", 50, 8, "https://provider.eu.example:8443")];
     const fetchImpl = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ ip: "1.1.1.1", latitude: 37.77, longitude: -122.41 }), {
+      new Response(JSON.stringify({ error: "rate limited" }), {
         status: 200,
         headers: { "content-type": "application/json" }
       })
     );
-    const result = await detectCurrentProvider(providers, { env: {}, fetchImpl });
-    expect(result?.marker.owner).toBe("us");
-    expect(result?.publicIp).toBe("1.1.1.1");
+
+    const result = await detectCurrentProvider(providers, { fetchImpl, dnsLookup: vi.fn() });
+
+    expect(result).toBeNull();
   });
 });
 
-function marker(owner: string, lat: number, lng: number): ProviderMarker {
+function mockGeoResponse(body: { ip: string; latitude: number; longitude: number }) {
+  return vi.fn().mockResolvedValue(
+    new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { "content-type": "application/json" }
+    })
+  );
+}
+
+function marker(owner: string, lat: number, lng: number, hostUri = `https://${owner}.example:8443`): ProviderMarker {
   return {
     owner,
     name: owner,
+    hostUri,
     lat,
     lng,
     region: "",
