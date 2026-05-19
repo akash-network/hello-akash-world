@@ -1,0 +1,292 @@
+@import "tailwindcss";
+
+/* ─── Brand foundation ──────────────────────────────────── */
+:root {
+  /* Akash red — punctuation only, never background */
+  --akash-red: #ff2903;
+  --akash-red-soft: #ff3b30;
+
+  /* Type families */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Radii */
+  --radius-xs: 6px;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-xl: 40px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 420ms;
+
+  /* Dark product surface (only theme — this app is dark-only) */
+  color-scheme: dark;
+
+  --bg: #000000;
+  --bg-elev-1: #0a0a0a;
+  --bg-elev-2: #111111;
+  --bg-elev-3: #181818;
+  --bg-elev-4: #1f1f1f;
+
+  --line-soft: #141414;
+  --line: #1e1e1e;
+  --line-strong: #2a2a2a;
+  --line-bold: #3a3a3a;
+
+  --fg: #fafafa;
+  --fg-muted: #ababaf;
+  --fg-subtle: #86868b;
+  --fg-faint: #4a4a4f;
+
+  --accent: var(--akash-red);
+  --accent-soft: var(--akash-red-soft);
+  --accent-bg: rgba(255, 41, 3, 0.08);
+
+  --ok: #2bd79f;
+  --ok-soft: rgba(43, 215, 159, 0.12);
+  --bid: #8c8cff;
+
+  --scrim: rgba(0, 0, 0, 0.78);
+  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.55);
+  --shadow-strong: 0 18px 40px rgba(0, 0, 0, 0.65);
+}
+
+/* ─── Tailwind theme — expose tokens as utilities ────────── */
+@theme {
+  --color-bg: var(--bg);
+  --color-bg-elev-1: var(--bg-elev-1);
+  --color-bg-elev-2: var(--bg-elev-2);
+  --color-bg-elev-3: var(--bg-elev-3);
+  --color-bg-elev-4: var(--bg-elev-4);
+
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-line-strong: var(--line-strong);
+  --color-line-bold: var(--line-bold);
+
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-fg-faint: var(--fg-faint);
+
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-bid: var(--bid);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+}
+
+/* ─── Base ───────────────────────────────────────────────── */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+  }
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--fg);
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow: hidden;
+    background-image:
+      radial-gradient(ellipse at 50% 50%, rgba(255, 41, 3, 0.05), transparent 60%),
+      radial-gradient(ellipse at 90% 10%, rgba(140, 140, 255, 0.04), transparent 50%);
+  }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+    color: var(--fg);
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+/* ─── Component classes (small set, ported from akash-functions) ─── */
+@layer components {
+  .mono {
+    font-family: var(--font-mono);
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--fg-subtle);
+    font-weight: 500;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    border: 1px solid transparent;
+    transition:
+      background var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out),
+      transform 80ms var(--ease-out);
+    white-space: nowrap;
+  }
+  .btn:active {
+    transform: scale(0.99);
+  }
+  .btn-primary {
+    background: var(--fg);
+    color: #000;
+    border-color: var(--fg);
+  }
+  .btn-primary:hover {
+    background: #e8e8e8;
+    border-color: #e8e8e8;
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--fg);
+    border-color: var(--line-strong);
+  }
+  .btn-ghost:hover {
+    background: var(--bg-elev-3);
+    border-color: var(--line-bold);
+  }
+  .btn-danger {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .btn-danger:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent-soft);
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 11.5px;
+    font-weight: 500;
+    border: 1px solid var(--line-strong);
+    background: var(--bg-elev-2);
+    color: var(--fg);
+    white-space: nowrap;
+    letter-spacing: -0.005em;
+  }
+  .pill-ok {
+    color: var(--ok);
+    background: var(--ok-soft);
+    border-color: rgba(43, 215, 159, 0.22);
+  }
+  .pill-mono {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+
+  .card {
+    background: var(--bg-elev-1);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .card-strong {
+    background: var(--bg-elev-1);
+    border: 1px solid var(--line-strong);
+    border-radius: 20px;
+  }
+}
+
+/* ─── Animations ─────────────────────────────────────────── */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes dot-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(43, 215, 159, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(43, 215, 159, 0);
+  }
+}
+@keyframes globe-loading {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.85;
+  }
+}
+
+.anim-fade-in {
+  animation: fade-in 0.6s var(--ease-out) both;
+}
+.anim-slide-up {
+  animation: slide-up 0.5s var(--ease-out) both;
+}
+.dot-pulse {
+  animation: dot-pulse 2.4s var(--ease-out) infinite;
+}
+.globe-loading-ring {
+  width: 64px;
+  height: 64px;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--ok) 60%, transparent);
+  box-shadow: 0 0 32px 4px color-mix(in srgb, var(--ok) 25%, transparent);
+  animation: globe-loading 1.8s var(--ease-out) infinite;
+}
