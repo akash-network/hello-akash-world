@@ -10,11 +10,11 @@ export function Hero({ snapshot, currentProvider }: Props) {
   return (
     <section className="pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pt-8 sm:px-10 sm:pt-12">
       <div className="anim-slide-up mx-auto max-w-3xl text-center">
-        <p className="eyebrow mb-3 !text-[color:color-mix(in_srgb,var(--accent)_70%,white_30%)]">Hello from Akash</p>
+        <p className="eyebrow mb-3 !text-[color:var(--accent-eyebrow)]">Hello from Akash</p>
         <h1 className="text-balance text-4xl font-semibold tracking-tight text-fg sm:text-6xl">The decentralized supercloud, live.</h1>
         <p className="mx-auto mt-4 max-w-xl text-[13px] text-fg-muted sm:text-base">
           <span className="mono font-semibold text-fg">{snapshot.totalProviders}</span> online providers across{" "}
-          <span className="mono font-semibold text-fg">{snapshot.totalCountries}</span> countries are renting out compute right now — and{" "}
+          <span className="mono font-semibold text-fg">{snapshot.totalCountries}</span> countries are renting out compute right now, and{" "}
           <span className="mono font-semibold text-fg">{snapshot.gpuProviders}</span> of them have GPUs ready to go.
         </p>
 

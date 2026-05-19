@@ -2,12 +2,13 @@
 
 import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
+import { useTheme } from "next-themes";
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import ThreeGlobe from "three-globe";
 
-import { GLOBE_CONFIG } from "@/lib/globe-config";
+import { useGlobeConfig, type GlobeConfig } from "@/lib/globe-config";
 import type { ProviderMarker } from "@/lib/types";
 
 const GLOBE_RADIUS = 100;
@@ -29,6 +30,9 @@ interface SceneProps {
 }
 
 export function ProviderGlobeScene(props: SceneProps) {
+  const cfg = useGlobeConfig();
+  const { resolvedTheme } = useTheme();
+  const showStars = resolvedTheme !== "light";
   const [autoRotate, setAutoRotate] = useState(true);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spinGroupRef = useRef<THREE.Group>(null);
@@ -62,46 +66,65 @@ export function ProviderGlobeScene(props: SceneProps) {
       onWheel={pauseAutoRotate}
       style={{ width: "100%", height: "100%" }}
     >
-      <ambientLight intensity={GLOBE_CONFIG.globe.ambientIntensity} />
+      <ambientLight intensity={cfg.globe.ambientIntensity} />
       <directionalLight position={[200, 200, 200]} intensity={1.05} />
-      <directionalLight position={[-200, -100, -150]} intensity={0.3} color={GLOBE_CONFIG.colors.atmosphere} />
+      <directionalLight position={[-200, -100, -150]} intensity={0.3} color={cfg.colors.atmosphere} />
       <group
         ref={spinGroupRef}
         rotation={[
-          GLOBE_CONFIG.globe.initialTiltDeg * (Math.PI / 180),
-          -GLOBE_CONFIG.globe.initialFacingLng * (Math.PI / 180),
+          cfg.globe.initialTiltDeg * (Math.PI / 180),
+          -cfg.globe.initialFacingLng * (Math.PI / 180),
           0
         ]}
       >
-        <Earth onReady={props.onReady} />
-        <ProviderPoints {...props} />
+        <Earth cfg={cfg} onReady={props.onReady} />
+        <ProviderPoints {...props} cfg={cfg} />
       </group>
       <GlobeSpinner groupRef={spinGroupRef} active={autoRotate} />
       <RotationControls setAutoRotate={setAutoRotate} idleTimer={idleTimer} />
-      <Stars />
+      {showStars && <Stars />}
     </Canvas>
   );
 }
 
-function Earth({ onReady }: { onReady?: () => void }) {
+function Earth({ cfg, onReady }: { cfg: GlobeConfig; onReady?: () => void }) {
   const globe = useMemo(() => {
     const g = new ThreeGlobe({ animateIn: false })
       .showAtmosphere(true)
-      .atmosphereColor(GLOBE_CONFIG.colors.atmosphere)
+      .atmosphereColor(cfg.colors.atmosphere)
       .atmosphereAltitude(0.18)
       .showGlobe(true)
-      .hexPolygonResolution(GLOBE_CONFIG.dot.resolution)
-      .hexPolygonMargin(GLOBE_CONFIG.dot.margin)
+      .hexPolygonResolution(cfg.dot.resolution)
+      .hexPolygonMargin(cfg.dot.margin)
       .hexPolygonUseDots(true)
-      .hexPolygonColor(() => GLOBE_CONFIG.dot.color);
+      .hexPolygonColor(() => cfg.dot.color);
 
     const material = g.globeMaterial() as THREE.MeshPhongMaterial;
-    material.color = new THREE.Color(GLOBE_CONFIG.globe.surface);
+    material.color = new THREE.Color(cfg.globe.surface);
     material.shininess = 0;
-    material.emissive = new THREE.Color(GLOBE_CONFIG.globe.emissive);
-    material.emissiveIntensity = GLOBE_CONFIG.globe.emissiveIntensity;
+    material.emissive = new THREE.Color(cfg.globe.emissive);
+    material.emissiveIntensity = cfg.globe.emissiveIntensity;
     return g;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(
+    function applyThemeToGlobe() {
+      const material = globe.globeMaterial() as THREE.MeshPhongMaterial;
+      material.color.set(cfg.globe.surface);
+      material.emissive.set(cfg.globe.emissive);
+      material.emissiveIntensity = cfg.globe.emissiveIntensity;
+      material.needsUpdate = true;
+      globe.atmosphereColor(cfg.colors.atmosphere);
+      globe.hexPolygonColor(() => cfg.dot.color);
+      const data = globe.hexPolygonsData();
+      if (data && data.length > 0) {
+        // Re-set data to force three-globe to repaint dots with the new color fn
+        globe.hexPolygonsData(data);
+      }
+    },
+    [cfg, globe]
+  );
 
   useEffect(
     function disposeGlobe() {
@@ -177,7 +200,11 @@ function GlobeSpinner({ groupRef, active }: { groupRef: React.RefObject<THREE.Gr
   return null;
 }
 
-function ProviderPoints({ providers, currentProviderOwner, onHover, onPointerScreenPosition, onClick }: SceneProps) {
+interface ProviderPointsProps extends SceneProps {
+  cfg: GlobeConfig;
+}
+
+function ProviderPoints({ providers, currentProviderOwner, onHover, onPointerScreenPosition, onClick, cfg }: ProviderPointsProps) {
   const [hoveredOwner, setHoveredOwner] = useState<string | null>(null);
 
   return (
@@ -188,6 +215,7 @@ function ProviderPoints({ providers, currentProviderOwner, onHover, onPointerScr
           marker={p}
           isCurrent={p.owner === currentProviderOwner}
           isHovered={p.owner === hoveredOwner}
+          cfg={cfg}
           onHover={(marker, screenXY) => {
             setHoveredOwner(marker?.owner ?? null);
             onHover(marker);
@@ -196,7 +224,7 @@ function ProviderPoints({ providers, currentProviderOwner, onHover, onPointerScr
           onClick={onClick}
         />
       ))}
-      {currentProviderOwner && <CurrentProviderHalo providers={providers} currentProviderOwner={currentProviderOwner} />}
+      {currentProviderOwner && <CurrentProviderHalo providers={providers} currentProviderOwner={currentProviderOwner} cfg={cfg} />}
     </group>
   );
 }
@@ -205,20 +233,21 @@ interface PointProps {
   marker: ProviderMarker;
   isCurrent: boolean;
   isHovered: boolean;
+  cfg: GlobeConfig;
   onHover: (marker: ProviderMarker | null, screen: { x: number; y: number } | null) => void;
   onClick: (marker: ProviderMarker) => void;
 }
 
-function ProviderPoint({ marker, isCurrent, isHovered, onHover, onClick }: PointProps) {
+function ProviderPoint({ marker, isCurrent, isHovered, cfg, onHover, onClick }: PointProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const position = useMemo(() => latLngToVec3(marker.lat, marker.lng, GLOBE_RADIUS + MARKER_ALTITUDE), [marker.lat, marker.lng]);
   const color = isCurrent
-    ? GLOBE_CONFIG.colors.current
+    ? cfg.colors.current
     : isHovered
-    ? GLOBE_CONFIG.colors.hover
+    ? cfg.colors.hover
     : marker.hasGpu
-    ? GLOBE_CONFIG.colors.onlineGpu
-    : GLOBE_CONFIG.colors.online;
+    ? cfg.colors.onlineGpu
+    : cfg.colors.online;
   const size = isHovered || isCurrent ? MARKER_RADIUS_HOVER : MARKER_RADIUS;
   const phase = useMemo(() => hashOwner(marker.owner) * Math.PI * 2, [marker.owner]);
 
@@ -230,11 +259,11 @@ function ProviderPoint({ marker, isCurrent, isHovered, onHover, onClick }: Point
       mat.opacity = 1;
       return;
     }
-    const t = clock.getElapsedTime() * ((2 * Math.PI) / GLOBE_CONFIG.pulse.periodSec) + phase;
+    const t = clock.getElapsedTime() * ((2 * Math.PI) / cfg.pulse.periodSec) + phase;
     const k = (Math.sin(t) + 1) / 2;
-    meshRef.current.scale.setScalar(lerp(GLOBE_CONFIG.pulse.scaleMin, GLOBE_CONFIG.pulse.scaleMax, k));
+    meshRef.current.scale.setScalar(lerp(cfg.pulse.scaleMin, cfg.pulse.scaleMax, k));
     const mat = meshRef.current.material as THREE.MeshBasicMaterial;
-    mat.opacity = lerp(GLOBE_CONFIG.pulse.opacityMin, GLOBE_CONFIG.pulse.opacityMax, k);
+    mat.opacity = lerp(cfg.pulse.opacityMin, cfg.pulse.opacityMax, k);
   });
 
   return (
@@ -269,9 +298,10 @@ function ProviderPoint({ marker, isCurrent, isHovered, onHover, onClick }: Point
 interface HaloProps {
   providers: ProviderMarker[];
   currentProviderOwner: string;
+  cfg: GlobeConfig;
 }
 
-function CurrentProviderHalo({ providers, currentProviderOwner }: HaloProps) {
+function CurrentProviderHalo({ providers, currentProviderOwner, cfg }: HaloProps) {
   const haloRef = useRef<THREE.Mesh>(null);
   const current = providers.find(p => p.owner === currentProviderOwner);
 
@@ -290,7 +320,7 @@ function CurrentProviderHalo({ providers, currentProviderOwner }: HaloProps) {
   return (
     <mesh ref={haloRef} position={position}>
       <sphereGeometry args={[2.6, 16, 16]} />
-      <meshBasicMaterial color={GLOBE_CONFIG.colors.current} transparent opacity={0.45} toneMapped={false} depthWrite={false} />
+      <meshBasicMaterial color={cfg.colors.current} transparent opacity={0.45} toneMapped={false} depthWrite={false} />
     </mesh>
   );
 }
