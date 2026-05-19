@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* ─── Brand foundation ──────────────────────────────────── */
+/* ─── Brand foundation (theme-agnostic) ──────────────────── */
 :root {
   /* Akash red — punctuation only, never background */
   --akash-red: #ff2903;
@@ -22,8 +22,11 @@
   --dur-fast: 120ms;
   --dur-base: 200ms;
   --dur-slow: 420ms;
+}
 
-  /* Dark product surface (only theme — this app is dark-only) */
+/* ─── Dark theme (also the SSR fallback before hydration) ── */
+:root,
+:root[data-theme="dark"] {
   color-scheme: dark;
 
   --bg: #000000;
@@ -45,6 +48,7 @@
   --accent: var(--akash-red);
   --accent-soft: var(--akash-red-soft);
   --accent-bg: rgba(255, 41, 3, 0.08);
+  --accent-eyebrow: color-mix(in srgb, var(--accent) 70%, white 30%);
 
   --ok: #2bd79f;
   --ok-soft: rgba(43, 215, 159, 0.12);
@@ -53,6 +57,40 @@
   --scrim: rgba(0, 0, 0, 0.78);
   --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.55);
   --shadow-strong: 0 18px 40px rgba(0, 0, 0, 0.65);
+}
+
+/* ─── Light theme ────────────────────────────────────────── */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #fafafa;
+  --bg-elev-1: #ffffff;
+  --bg-elev-2: #f4f4f5;
+  --bg-elev-3: #ebebed;
+  --bg-elev-4: #dedee1;
+
+  --line-soft: #ececee;
+  --line: #e1e1e4;
+  --line-strong: #c9c9ce;
+  --line-bold: #a8a8af;
+
+  --fg: #0a0a0a;
+  --fg-muted: #2a2a2f;
+  --fg-subtle: #525258;
+  --fg-faint: #8e8e95;
+
+  --accent: var(--akash-red);
+  --accent-soft: var(--akash-red-soft);
+  --accent-bg: rgba(255, 41, 3, 0.10);
+  --accent-eyebrow: color-mix(in srgb, var(--accent) 85%, black 15%);
+
+  --ok: #0f9d6e;
+  --ok-soft: rgba(15, 157, 110, 0.12);
+  --bid: #5b5bd6;
+
+  --scrim: rgba(255, 255, 255, 0.78);
+  --shadow-soft: 0 10px 30px rgba(15, 15, 30, 0.10);
+  --shadow-strong: 0 18px 40px rgba(15, 15, 30, 0.16);
 }
 
 /* ─── Tailwind theme — expose tokens as utilities ────────── */
@@ -112,6 +150,11 @@
       radial-gradient(ellipse at 50% 50%, rgba(255, 41, 3, 0.05), transparent 60%),
       radial-gradient(ellipse at 90% 10%, rgba(140, 140, 255, 0.04), transparent 50%);
   }
+  :root[data-theme="light"] body {
+    background-image:
+      radial-gradient(ellipse at 50% 50%, rgba(255, 41, 3, 0.06), transparent 60%),
+      radial-gradient(ellipse at 90% 10%, rgba(91, 91, 214, 0.05), transparent 50%);
+  }
   button {
     font-family: inherit;
     cursor: pointer;
@@ -170,12 +213,12 @@
   }
   .btn-primary {
     background: var(--fg);
-    color: #000;
+    color: var(--bg);
     border-color: var(--fg);
   }
   .btn-primary:hover {
-    background: #e8e8e8;
-    border-color: #e8e8e8;
+    background: color-mix(in srgb, var(--fg) 90%, var(--bg) 10%);
+    border-color: color-mix(in srgb, var(--fg) 90%, var(--bg) 10%);
   }
   .btn-ghost {
     background: transparent;
@@ -213,7 +256,7 @@
   .pill-ok {
     color: var(--ok);
     background: var(--ok-soft);
-    border-color: rgba(43, 215, 159, 0.22);
+    border-color: color-mix(in srgb, var(--ok) 22%, transparent);
   }
   .pill-mono {
     font-family: var(--font-mono);
@@ -255,10 +298,10 @@
 @keyframes dot-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(43, 215, 159, 0.45);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 45%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(43, 215, 159, 0);
+    box-shadow: 0 0 0 6px transparent;
   }
 }
 @keyframes globe-loading {
