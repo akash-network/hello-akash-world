@@ -1,24 +1,13 @@
 const { version } = require("./package.json");
-const withPWA = require("next-pwa");
 
-const isDev = process.env.NODE_ENV === "development";
-module.exports = withPWA({
-  pwa: {
-    dest: "public",
-    register: true,
-    skipWaiting: true,
-    disable: isDev
-  },
-  transpilePackages: ["geist"],
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: "standalone",
   reactStrictMode: true,
-  compiler: {
-    // Enables the styled-components SWC transform
-    styledComponents: true
+  env: {
+    NEXT_PUBLIC_APP_VERSION: version
   },
-  experimental: {
-    outputStandalone: true
-  },
-  publicRuntimeConfig: {
-    version
-  }
-});
+  transpilePackages: ["three", "@react-three/fiber", "@react-three/drei", "three-globe"]
+};
+
+module.exports = nextConfig;
